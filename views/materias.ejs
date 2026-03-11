@@ -1,0 +1,250 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+
+<h2 class="mb-0">
+<i class="bi bi-journal-bookmark"></i> Materias
+</h2>
+
+<div class="d-flex gap-2">
+
+<input 
+type="text"
+id="buscador"
+class="form-control"
+placeholder="Buscar materia..."
+style="width:200px"
+>
+
+<button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCrear">
+<i class="bi bi-plus-lg"></i> Nueva
+</button>
+
+</div>
+
+</div>
+
+<!-- Crear materia -->
+
+<div class="modal fade" id="modalCrear">
+
+<div class="modal-dialog">
+
+<div class="modal-content">
+
+<div class="modal-header">
+<h5 class="modal-title">Nueva Materia</h5>
+<button class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+
+<input 
+type="text"
+id="nombreMateria"
+class="form-control"
+placeholder="Nombre de la materia"
+>
+
+</div>
+
+<div class="modal-footer">
+
+<button class="btn btn-secondary" data-bs-dismiss="modal">
+Cancelar
+</button>
+
+<button class="btn btn-primary" onclick="crearMateria()">
+Guardar
+</button>
+
+</div>
+
+</div>
+</div>
+</div>
+
+
+<table class="table table-striped table-hover">
+
+<thead class="table-dark">
+<tr>
+<th>ID</th>
+<th>Materia</th>
+<th width="200">Acciones</th>
+</tr>
+</thead>
+
+<tbody id="tablaMaterias">
+
+<% materias.forEach(materia => { %>
+
+<tr>
+
+<td><%= materia.id %></td>
+
+<td>
+<input 
+type="text"
+value="<%= materia.nombre %>"
+class="form-control form-control-sm"
+id="materia-<%= materia.id %>"
+>
+</td>
+
+<td>
+
+<button 
+class="btn btn-warning btn-sm"
+onclick="editarMateria(<%= materia.id %>)"
+>
+<i class="bi bi-pencil"></i>
+</button>
+
+<button 
+class="btn btn-danger btn-sm"
+onclick="eliminarMateria(<%= materia.id %>)"
+>
+<i class="bi bi-trash"></i>
+</button>
+
+</td>
+
+</tr>
+
+<% }) %>
+
+</tbody>
+
+</table>
+
+
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+// BUSCADOR
+
+document.getElementById("buscador").addEventListener("keyup", function(){
+
+let filtro = this.value.toLowerCase()
+let filas = document.querySelectorAll("#tablaMaterias tr")
+
+filas.forEach(fila => {
+
+let texto = fila.innerText.toLowerCase()
+
+fila.style.display = texto.includes(filtro) ? "" : "none"
+
+})
+
+})
+
+
+// CREAR MATERIA
+
+function crearMateria(){
+
+let nombre = document.getElementById("nombreMateria").value
+
+fetch("/admin/materias",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({nombre})
+})
+.then(res=>{
+
+if(res.ok){
+
+Swal.fire({
+icon:"success",
+title:"Materia creada",
+timer:1500,
+showConfirmButton:false
+}).then(()=>location.reload())
+
+}
+
+})
+
+}
+
+
+// EDITAR
+
+function editarMateria(id){
+
+let nombre = document.getElementById("materia-"+id).value
+
+fetch("/admin/materias/editar/"+id,{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({nombre})
+})
+.then(res=>{
+
+if(res.ok){
+
+Swal.fire({
+icon:"success",
+title:"Materia editada",
+timer:1500,
+showConfirmButton:false
+})
+
+}
+
+})
+
+}
+
+
+// ELIMINAR
+
+function eliminarMateria(id){
+
+Swal.fire({
+title:"¿Eliminar materia?",
+text:"Esta acción no se puede deshacer",
+icon:"warning",
+showCancelButton:true,
+confirmButtonColor:"#d33",
+confirmButtonText:"Eliminar"
+})
+.then(result=>{
+
+if(result.isConfirmed){
+
+fetch("/admin/materias/eliminar/"+id,{
+method:"DELETE"
+})
+.then(res=>{
+
+if(res.ok){
+
+Swal.fire({
+icon:"success",
+title:"Materia eliminada",
+timer:1500,
+showConfirmButton:false
+}).then(()=>location.reload())
+
+}
+
+})
+
+}
+
+})
+
+}
+
+</script>

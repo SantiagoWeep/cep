@@ -54,7 +54,13 @@
               <td class="examen"><%= al.examen_dic ?? '-' %></td>
               <td class="examen"><%= al.examen_mar ?? '-' %></td>
               <td class="promedio-final">
-                <%= al.promedio_final !== null ? al.promedio_final.toFixed(2) : '-' %>
+                <% if(al.estado === 'EP'){ %>
+                EP
+                <% } else if(al.promedio_final !== null){ %>
+                <%= al.promedio_final.toFixed(2) %>
+                <% } else { %>
+                -
+                <% } %>
               </td>
             </tr>
           <% }) %>

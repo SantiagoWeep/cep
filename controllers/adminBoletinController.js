@@ -1,116 +1,157 @@
-
 const db = require('../config/db');
 
-function truncar2Decimales(valor) {
-  return Math.trunc(valor * 100) / 100;
-}
-function calcularPromedioFinalBoletin(b) {
-  const notas = [
-    b.trimestre_1 !== null ? parseFloat(b.trimestre_1) : null,
-    b.trimestre_2 !== null ? parseFloat(b.trimestre_2) : null,
-    b.trimestre_3 !== null ? parseFloat(b.trimestre_3) : null,
-  ].filter(n => n !== null);
 
-  let promedio = null;
-  if (notas.length) {
-    promedio = truncar2Decimales(notas.reduce((a,b)=>a+b,0)/notas.length);
+exports.mostrarBoletines = async (req, res) => {
+
+  const ciclo = req.ciclo;
+  const cursoFiltro = req.query.curso || '';
+
+  let sql = `
+    SELECT 
+      v.alumno_id,
+      a.nombre,
+      a.apellido,
+      v.curso,
+      v.materia,
+      v.t1,
+      v.t2,
+      v.t3,
+      v.examen_dic,
+      v.examen_mar,
+      v.nota_final,
+      v.estado
+    FROM vista_boletines v
+    JOIN alumnos a ON v.alumno_id = a.id
+    WHERE v.ciclo_id = ?
+  `;
+
+  const params = [ciclo];
+
+  if (cursoFiltro) {
+    sql += " AND v.curso = ?";
+    params.push(cursoFiltro);
   }
 
-  const exDic = b.examen_dic !== null ? parseFloat(b.examen_dic) : null;
-  const exMar = b.examen_mar !== null ? parseFloat(b.examen_mar) : null;
+  sql += " ORDER BY v.curso, a.apellido, a.nombre, v.materia";
 
-  if ((promedio === null || promedio < 6) && exDic !== null && exDic >= 6) promedio = exDic;
-  else if ((promedio === null || promedio < 6) && exMar !== null && exMar >= 6) promedio = exMar;
+  const [rows] = await db.query(sql, params);
 
-  return promedio;
-}
-exports.mostrarBoletines = async (req, res) => {
-  const curso = req.query.curso || '';
+  const alumnos = {};
 
-  try {
-    let query = `
-      SELECT 
-        a.nombre AS alumno_nombre,
-        a.apellido AS alumno_apellido,
-        c.nombre AS curso_nombre,
-        m.nombre AS materia_nombre,
-        b.trimestre_1, b.trimestre_2, b.trimestre_3,
-        b.examen_dic, b.examen_mar, b.promedio_final
-      FROM boletines b
-      JOIN alumnos a ON b.alumno_id = a.id
-      JOIN cursos c ON b.curso_id = c.id
-      JOIN materias m ON b.materia_id = m.id
-    `;
+  rows.forEach(r => {
 
-    const params = [];
-    if (curso) {
-      query += ` WHERE c.nombre = ? `;
-      params.push(curso);
-    }
-    query += ` ORDER BY c.orden, a.apellido, a.nombre, m.nombre`;
-
-    const [boletines] = await db.query(query, params);
-
-    const boletinesConPromedio = boletines.map(b => ({
-      ...b,
-      promedio_final: calcularPromedioFinalBoletin(b)
-    }));
-
-    // 👉 Si viene con ?ajax=1 → solo devolvés el partial
-    if (req.query.ajax) {
-      return res.render('parciales/boletinesList', { boletines: boletinesConPromedio, layout: false });
+    if(!alumnos[r.alumno_id]){
+      alumnos[r.alumno_id] = {
+        alumno: r.nombre,
+        apellido: r.apellido,
+        curso: r.curso,
+        materias: []
+      }
     }
 
-    // 👉 Si es carga normal → devolvés todo con header
-    res.render('admin/boletines', {
-      tipoBusqueda: 'DNI o Nombre',
-      idInputBusqueda: 'input-busqueda',
-      textoBotonAgregar: '',
-      idModalAgregar: '',
-      mostrarFiltroCurso: true,
-      boletines: boletinesConPromedio,
-      search: req.query.q || '',
-      cursoSeleccionado: curso
+    alumnos[r.alumno_id].materias.push({
+      materia: r.materia,
+      t1: r.t1,
+      t2: r.t2,
+      t3: r.t3,
+      examen_dic: r.examen_dic,
+      examen_mar: r.examen_mar,
+      nota_final: r.nota_final,
+      estado: r.estado
     });
 
-  } catch (error) {
-    console.error('Error al cargar boletines:', error);
-    res.status(500).send('Error al cargar boletines');
+  });
+
+  const alumnosArray = Object.values(alumnos);
+
+  // 👇 si es AJAX devolvemos solo el partial
+  if (req.xhr) {
+    return res.render('parciales/boletinesList', {
+      alumnos: alumnosArray,
+      layout: false
+    });
   }
+
+  // 👇 si es carga normal devolvemos la página completa
+  res.render('admin/boletines', {
+    alumnos: alumnosArray,
+    tipoBusqueda: 'Nombre o DNI',
+    idInputBusqueda: 'input-busqueda',
+    mostrarFiltroCurso: true,
+    cursoSeleccionado: cursoFiltro
+  });
+
 };
 
 
-
-
-
-// controllers/adminBoletinController.js
-
 exports.buscarBoletines = async (req, res) => {
+
   const q = req.query.q || '';
+  const ciclo = req.ciclo;
 
   try {
-    const [boletines] = await db.query(`
-      SELECT 
-        a.nombre AS alumno_nombre,
-        a.apellido AS alumno_apellido,
-        a.dni AS alumno_dni,
-        c.nombre AS curso_nombre,
-        m.nombre AS materia_nombre,
-        b.trimestre_1, b.trimestre_2, b.trimestre_3,
-        b.examen_dic, b.examen_mar, b.promedio_final
-      FROM boletines b
-      JOIN alumnos a ON b.alumno_id = a.id
-      JOIN cursos c ON b.curso_id = c.id
-      JOIN materias m ON b.materia_id = m.id
-      WHERE a.nombre LIKE ? OR a.apellido LIKE ? OR a.dni LIKE ? OR c.nombre LIKE ?
-      ORDER BY a.apellido, a.nombre, c.nombre, m.nombre
-      LIMIT 50
-    `, [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]);
 
-    res.render('parciales/boletinesList', { boletines, layout: false });
+    const [rows] = await db.query(`
+      SELECT 
+        v.alumno_id,
+        a.nombre,
+        a.apellido,
+        v.curso,
+        v.materia,
+        v.t1,
+        v.t2,
+        v.t3,
+        v.examen_dic,
+        v.examen_mar,
+        v.nota_final,
+        v.estado
+      FROM vista_boletines v
+      JOIN alumnos a ON v.alumno_id = a.id
+      WHERE v.ciclo_id = ?
+      AND (
+        a.nombre LIKE ?
+        OR a.apellido LIKE ?
+        OR a.dni LIKE ?
+        OR v.curso LIKE ?
+      )
+      ORDER BY v.curso, a.apellido, a.nombre, v.materia
+      LIMIT 50
+    `,[ciclo, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`]);
+
+    const alumnos = {};
+
+    rows.forEach(r => {
+
+      if(!alumnos[r.alumno_id]){
+        alumnos[r.alumno_id] = {
+          alumno: r.nombre,
+          apellido: r.apellido,
+          curso: r.curso,
+          materias: []
+        }
+      }
+
+      alumnos[r.alumno_id].materias.push({
+        materia: r.materia,
+        t1: r.t1,
+        t2: r.t2,
+        t3: r.t3,
+        examen_dic: r.examen_dic,
+        examen_mar: r.examen_mar,
+        nota_final: r.nota_final,
+        estado: r.estado
+      });
+
+    });
+
+    res.render('parciales/boletinesList',{
+  alumnos:Object.values(alumnos),
+  layout:false
+});
 
   } catch (error) {
-    console.error('Error buscando boletines:', error);
+    console.error(error);
     res.status(500).send('Error buscando boletines');
   }
+
 };

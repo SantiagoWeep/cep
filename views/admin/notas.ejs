@@ -69,6 +69,11 @@
       font-size: 0.9em;
     }
 
+    .ep {
+        color: #c40000;
+        font-weight: bold;
+      }
+
     .nota-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -166,7 +171,7 @@
       <h3>Materia: <%= materia.materia_nombre %></h3>
     <div class="profesor">Profesor: <%= materia.profesor_nombre %> <%= materia.profesor_apellido %></div>
 
-
+      
       <table class="tabla-curso-curso-<%= curso.curso.toLowerCase().replace(/\s/g, '-') %>">
 
         <thead>
@@ -174,7 +179,7 @@
   <th>Alumno</th>
   <% [1, 2, 3].forEach(tri => { %>
     <th>Notas</th>
-    <th class="promedio-trimestral">Prom.</th>
+    <th class="promedio-trimestral">Prom.</th>  
   <% }) %>
 
   <th>Ex. Dic</th>
@@ -217,14 +222,26 @@
             <% }) %>
           </div>
         </td>
-        <td class="promedio-trimestral"><%= promTrim %></td>
+       <td class="promedio-trimestral">
+        <% if(promTrim !== '-' && promTrim < 6){ %>
+        <span class="ep"><%= promTrim %> (EP)</span>
+        <% } else { %>
+        <%= promTrim %>
+        <% } %>
+        </td>
       <% }) %>
 
       <td class="examen"><%= alumno.examen_dic ?? '-' %></td>
       <td class="examen"><%= alumno.examen_mar ?? '-' %></td>
       <td class="promedio-final">
-        <%= alumno.promedio_final !== null ? alumno.promedio_final.toFixed(2) : '-' %>
-      </td>
+        <% if(alumno.estado === 'EP'){ %>
+          EP
+          <% } else if(alumno.promedio_final !== null){ %>
+          <%= alumno.promedio_final.toFixed(2) %>
+          <% } else { %>
+          -
+          <% } %>
+        </td>
     </tr>
   <% }) %>
 </tbody>

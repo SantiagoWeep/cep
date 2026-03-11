@@ -46,49 +46,66 @@
 
 </style>
 
+<% if (alumnos.length === 0) { %>
 
-<% if (boletines.length === 0) { %>
-  <div class="alert alert-warning mt-4">No se encontraron boletines que coincidan con la búsqueda.</div>
+<div class="alert alert-warning">
+No se encontraron boletines
+</div>
+
+
+
 <% } else { %>
-  <% let currentAlumno = null; let currentCurso = null; %>
 
-  <% boletines.forEach(b => { %>
-    <% if(currentAlumno !== b.alumno_nombre || currentCurso !== b.curso_nombre) { %>
-      <% if(currentAlumno !== null) { %></tbody></table><hr><% } %>
+<% alumnos.forEach(a => { %>
 
-      <h2>Boletín de <%= b.alumno_nombre %> <%= b.alumno_apellido %> - Curso: <%= b.curso_nombre %></h2>
-      <div class="table-responsive">
-  <table class="table table-bordered table-striped">
-    <thead class="table-dark text-center">
-      <tr>
-        <th>Materia</th>
-        <th>1°T</th>
-        <th>2°T</th>
-        <th>3°T</th>
-        <th>Ex. Dic.</th>
-        <th>Ex. Mar.</th>
-        <th>Prom.</th>
-      </tr>
-    </thead>
-    <tbody class="text-center align-middle">
+<h2>
+Boletín de <%= a.alumno %> <%= a.apellido %> - Curso <%= a.curso %>
+</h2>
 
+<table class="table">
 
-    <% } %>
+<thead>
+<tr>
+<th>Materia</th>
+<th>1T</th>
+<th>2T</th>
+<th>3T</th>
+<th>Prom</th>
+</tr>
+</thead>
 
-    <tr>
-      <td><%= b.materia_nombre %></td>
-      <td><%= b.trimestre_1 ?? '-' %></td>
-      <td><%= b.trimestre_2 ?? '-' %></td>
-      <td><%= b.trimestre_3 ?? '-' %></td>
-      <td><%= b.examen_dic ?? '-' %></td>
-      <td><%= b.examen_mar ?? '-' %></td>
-      <td><%= b.promedio_final ?? '-' %></td>
-    </tr>
+<tbody>
 
-    <% currentAlumno = b.alumno_nombre; currentCurso = b.curso_nombre; %>
+<% a.materias.forEach(m => { %>
 
-  <% }) %>
-  </tbody>
-  </table>
-  </div>
+<tr>
+
+<td><%= m.materia %></td>
+
+<td><%= m.t1 !== null && m.t1 < 6 ? 'EP' : (m.t1 ?? '-') %></td>
+
+<td><%= m.t2 !== null && m.t2 < 6 ? 'EP' : (m.t2 ?? '-') %></td>
+
+<td><%= m.t3 !== null && m.t3 < 6 ? 'EP' : (m.t3 ?? '-') %></td>
+
+<td>
+<% if(m.estado === 'EP'){ %>
+EP
+<% } else { %>
+<%= m.nota_final %>
+<% } %>
+</td>
+
+</tr>
+
+<% }) %>
+
+</tbody>
+
+</table>
+
+<hr>
+
+<% }) %>
+
 <% } %>

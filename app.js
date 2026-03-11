@@ -5,12 +5,10 @@ const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
 const path = require('path');
 const expressLayouts = require('express-ejs-layouts');
-
-// Configurar entorno
 dotenv.config();
-
-// Crear app
+const db = require('./config/db');
 const app = express();
+const cicloMiddleware = require('./middlewares/cicloMiddleware');
 
 // Middlewares
 app.use(cors());
@@ -21,8 +19,8 @@ app.use(bodyParser.urlencoded({
   parameterLimit: 10000 
 }));
 
-app.use(bodyParser.json());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // EJS y Layouts
 app.set('view engine', 'ejs');
@@ -30,6 +28,17 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('layout', 'administracion'); 
 app.use(expressLayouts);
+
+const session = require('express-session');
+
+app.use(session({
+  secret: 'sistema-escolar',
+  resave: false,
+  saveUninitialized: false
+}));
+
+app.use(cicloMiddleware); 
+
 
 
 // Rutas
@@ -43,6 +52,8 @@ const alumnosRoutes = require('./routes/alumnosRoutes');
 const profesoresRoutes = require('./routes/profesoresRoutes');
 const adminBoletinRoutes = require('./routes/adminBoletinRoutes');
 const adminNotasRoutes = require('./routes/adminNotasRoutes');
+const materiasRoutes = require('./routes/materiaRoutes');
+const ciclosRoutes = require('./routes/ciclosRoutes');
 
 // Usar rutas
 app.use(alumnosRoutes);
@@ -55,6 +66,9 @@ app.use(authAlumnoRoutes);
 app.use(profesoresRoutes);
 app.use(adminBoletinRoutes);
 app.use(adminNotasRoutes);
+app.use(materiasRoutes);
+app.use(ciclosRoutes);
+
 
 // Ruta principal sin layout
 app.get('/', (req, res) => {

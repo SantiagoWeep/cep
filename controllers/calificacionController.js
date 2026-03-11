@@ -6,6 +6,7 @@ exports.mostrarListaAlumnos = async (req, res) => {
 
   const profesorId = parseInt(req.profesor.id, 10);
   const nombreCompleto = `${req.profesor.nombre} ${req.profesor.apellido}`;
+  const ciclo = req.ciclo;
  
   const query = `
     SELECT 
@@ -23,13 +24,15 @@ exports.mostrarListaAlumnos = async (req, res) => {
     JOIN cursos c ON c.id = cpm.curso_id
     JOIN materias m ON m.id = cpm.materia_id
     JOIN alumnos a ON a.curso_id = c.id
-    LEFT JOIN notas n ON n.alumno_id = a.id AND n.curso_id = c.id AND n.materia_id = m.id
-    WHERE cpm.profesor_id = ?
-    ORDER BY c.id, m.id, a.id, n.trimestre, n.numero
+   LEFT JOIN notas n 
+    ON n.alumno_id = a.id 
+    AND n.curso_id = c.id 
+    AND n.materia_id = m.id
+    AND n.ciclo_id = ?
   `;
 
   try {
-    const [results] = await db.query(query, [profesorId]);
+    const [results] = await db.query(query, [ciclo]);
 
     const cursos = {};
 
@@ -122,83 +125,46 @@ exports.mostrarListaAlumnos = async (req, res) => {
 };
 
 exports.guardarNotas = async (req, res) => {
+
   const data = req.body;
-  const profesorId = req.user?.id || 1; // fallback para pruebas
-  const inserts = [];
+  const valores = [];
 
-  // Recolectar todas las notas enviadas
+  const cicloId = req.ciclo;
+
   for (const key in data) {
+
     if (key.startsWith('nota_')) {
-      const [, alumnoId, cursoId, materiaId, trimestreStr, numeroStr] = key.split('_');
-      const valorRaw = data[key];
 
-      if (!valorRaw) continue;
+      const [, alumnoId, cursoId, materiaId, trimestre, numero] = key.split('_');
 
-      const nota = parseFloat(valorRaw);
-      const trimestre = parseInt(trimestreStr);
-      const numero = parseInt(numeroStr);
+      const valor = data[key].trim();
 
-      if (!isNaN(nota) && trimestre >= 1 && trimestre <= 4 && numero >= 1 && numero <= 4) {
-        inserts.push({ alumnoId, cursoId, materiaId, trimestre, numero, nota });
+      let nota = null;
+
+      if (valor !== '') {
+        nota = parseFloat(valor);
       }
+
+      valores.push([alumnoId, cursoId, materiaId, trimestre, numero, nota, cicloId]);
+
     }
   }
 
   try {
-    // Insertar o actualizar cada nota individualmente
-    for (const n of inserts) {
-      const sql = `
-        INSERT INTO notas 
-          (alumno_id, curso_id, materia_id, trimestre, numero, profesor_id, nota)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE 
-          nota = VALUES(nota),
-          profesor_id = VALUES(profesor_id),
-          guardado = TRUE;
-      `;
-      await db.query(sql, [n.alumnoId, n.cursoId, n.materiaId, n.trimestre, n.numero, profesorId, n.nota]);
-    }
 
-    // Actualizar boletines
-    const updateBoletinesQuery = `
-      INSERT INTO boletines (
-        alumno_id, curso_id, materia_id,
-        trimestre_1, trimestre_2, trimestre_3,
-        examen_dic, examen_mar, promedio_final
-      )
-      SELECT 
-        n.alumno_id,
-        n.curso_id,
-        n.materia_id,
-        TRUNCATE(AVG(CASE WHEN n.trimestre = 1 THEN n.nota END), 2),
-        TRUNCATE(AVG(CASE WHEN n.trimestre = 2 THEN n.nota END), 2),
-        TRUNCATE(AVG(CASE WHEN n.trimestre = 3 THEN n.nota END), 2),
-        MAX(CASE WHEN n.trimestre = 4 AND n.numero = 1 THEN n.nota END),
-        MAX(CASE WHEN n.trimestre = 4 AND n.numero = 2 THEN n.nota END),
-        TRUNCATE(
-          CASE
-            WHEN AVG(CASE WHEN n.trimestre IN (1,2,3) THEN n.nota END) >= 6 THEN AVG(CASE WHEN n.trimestre IN (1,2,3) THEN n.nota END)
-            WHEN MAX(CASE WHEN n.trimestre = 4 AND n.numero = 1 THEN n.nota END) >= 6 THEN MAX(CASE WHEN n.trimestre = 4 AND n.numero = 1 THEN n.nota END)
-            WHEN MAX(CASE WHEN n.trimestre = 4 AND n.numero = 2 THEN n.nota END) >= 6 THEN MAX(CASE WHEN n.trimestre = 4 AND n.numero = 2 THEN n.nota END)
-            ELSE AVG(CASE WHEN n.trimestre IN (1,2,3) THEN n.nota END)
-          END
-        , 2)
-      FROM notas n
-      JOIN alumnos a ON a.id = n.alumno_id AND a.curso_id = n.curso_id
-      GROUP BY n.alumno_id, n.curso_id, n.materia_id
-      ON DUPLICATE KEY UPDATE 
-        trimestre_1 = VALUES(trimestre_1),
-        trimestre_2 = VALUES(trimestre_2),
-        trimestre_3 = VALUES(trimestre_3),
-        examen_dic = VALUES(examen_dic),
-        examen_mar = VALUES(examen_mar),
-        promedio_final = VALUES(promedio_final);
-    `;
-    await db.query(updateBoletinesQuery);
+    await db.query(`
+      INSERT INTO notas
+      (alumno_id, curso_id, materia_id, trimestre, numero, nota, ciclo_id)
+      VALUES ?
+      ON DUPLICATE KEY UPDATE
+      nota = VALUES(nota)
+    `, [valores]);
 
     res.redirect('/calificaciones?guardado=1');
+
   } catch (err) {
-    console.error('Error al guardar notas o boletines:', err);
-    res.status(500).send('Error al guardar notas o boletines');
+    console.error(err);
+    res.status(500).send("Error guardando notas");
   }
+
 };
