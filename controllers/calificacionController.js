@@ -23,7 +23,9 @@ const query = `
   FROM curso_profesor_materia cpm
   JOIN cursos c ON c.id = cpm.curso_id
   JOIN materias m ON m.id = cpm.materia_id
-  JOIN alumnos a ON a.curso_id = c.id
+  JOIN alumnos a 
+    ON a.curso_id = c.id
+    AND a.ciclo_id = ?
   LEFT JOIN notas n 
     ON n.alumno_id = a.id 
     AND n.curso_id = c.id 
@@ -31,11 +33,11 @@ const query = `
     AND n.ciclo_id = ?
   WHERE 
     cpm.profesor_id = ?
-    AND cpm.ciclo_id = ?
+  AND (cpm.ciclo_id = ? OR cpm.ciclo_id IS NULL)
 `;
 
   try {
-    const [results] = await db.query(query, [ciclo, profesorId, ciclo]);
+    const [results] = await db.query(query, [ciclo, ciclo, profesorId, ciclo]);
 
     const cursos = {};
 
