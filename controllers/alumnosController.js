@@ -1,12 +1,13 @@
 const db = require('../config/db'); // o tu ORM/configuración
 exports.mostrarAlumnos = async (req, res) => {
   try {
-        const [alumnos] = await db.query(`
-  SELECT alumnos.*, cursos.nombre AS curso_nombre, cursos.orden 
-  FROM alumnos 
-  JOIN cursos ON alumnos.curso_id = cursos.id 
-  WHERE alumnos.ciclo_id = ?
-`, [req.ciclo]);
+         const [alumnos] = await db.query(`
+      SELECT alumnos.*, cursos.nombre AS curso_nombre, cursos.orden
+      FROM alumnos
+      JOIN cursos ON alumnos.curso_id = cursos.id
+      WHERE alumnos.ciclo_id = ?
+      ORDER BY cursos.orden ASC, alumnos.apellido ASC, alumnos.nombre ASC
+    `, [req.ciclo]);
 
     const [cursos] = await db.query(`SELECT * FROM cursos ORDER BY orden`);
 
