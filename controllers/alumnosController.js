@@ -143,7 +143,10 @@ exports.buscarAlumnos = async (req, res) => {
   JOIN cursos ON alumnos.curso_id = cursos.id 
   WHERE alumnos.ciclo_id = ?
   AND (alumnos.nombre LIKE ? OR alumnos.apellido LIKE ? OR alumnos.dni LIKE ?)
-  ORDER BY cursos.orden, alumnos.apellido
+  ORDER BY 
+  cursos.orden ASC, 
+  alumnos.apellido COLLATE utf8mb4_spanish_ci ASC, 
+  alumnos.nombre ASC
 `, [req.ciclo, `%${q}%`, `%${q}%`, `%${q}%`]);
 
     const alumnosPorCurso = {};
