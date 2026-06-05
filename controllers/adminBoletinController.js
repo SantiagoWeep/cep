@@ -42,6 +42,7 @@ exports.mostrarBoletines = async (req, res) => {
 
     if(!alumnos[r.alumno_id]){
       alumnos[r.alumno_id] = {
+        id: r.alumno_id,
         alumno: r.nombre,
         apellido: r.apellido,
         curso: r.curso,
@@ -128,6 +129,7 @@ exports.buscarBoletines = async (req, res) => {
 
       if(!alumnos[r.alumno_id]){
         alumnos[r.alumno_id] = {
+          id: r.alumno_id,
           alumno: r.nombre,
           apellido: r.apellido,
           curso: r.curso,
@@ -156,6 +158,65 @@ exports.buscarBoletines = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).send('Error buscando boletines');
+  }
+
+};
+
+
+exports.imprimirBoletin = async (req, res) => {
+
+  const alumnoId = req.params.alumnoId;
+  const ciclo = req.session.ciclo;
+
+  try {
+
+    const [rows] = await db.query(`
+  SELECT
+    v.*,
+    a.nombre,
+    a.apellido,
+    a.dni,
+    a.edad,
+    a.tutor
+  FROM vista_boletines v
+  JOIN alumnos a ON a.id = v.alumno_id
+  WHERE v.alumno_id = ?
+  AND v.ciclo_id = ?
+  ORDER BY v.materia
+`, [alumnoId, ciclo]);
+
+    if(rows.length === 0){
+      return res.send('No existe boletín');
+    }
+
+    const alumno = {
+  id: alumnoId,
+  nombre: rows[0].nombre,
+  apellido: rows[0].apellido,
+  dni: rows[0].dni,
+  edad: rows[0].edad,
+  tutor: rows[0].tutor,
+
+  curso: rows[0].curso,
+  ciclo: ciclo,
+
+  materias: rows.map(r => ({
+    materia: r.materia,
+    t1: r.t1,
+    t2: r.t2,
+    t3: r.t3,
+    nota_final: r.nota_final,
+    estado: r.estado
+  }))
+};
+    res.render('admin/imprimir/boletin', {
+      alumno,
+      layout: false
+    });
+
+  } catch(err){
+    console.error(err);
+    res.status(500).send('Error');
   }
 
 };

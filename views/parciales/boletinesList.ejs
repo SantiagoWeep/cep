@@ -59,7 +59,16 @@ No se encontraron boletines
 <% alumnos.forEach(a => { %>
 
 <h2>
-Boletín de <%= a.alumno %> <%= a.apellido %> - Curso <%= a.curso %>
+  Boletín de <%= a.alumno %> <%= a.apellido %>
+  - Curso <%= a.curso %>
+
+  <a
+    href="/admin/boletines/imprimir/boletin/<%= a.id %>"
+    target="_blank"
+    class="btn btn-sm btn-primary"
+  >
+    Imprimir
+  </a>
 </h2>
 
 <table class="table">
