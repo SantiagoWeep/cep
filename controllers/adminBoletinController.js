@@ -195,7 +195,7 @@ exports.imprimirBoletin = async (req, res) => {
   apellido: rows[0].apellido,
   dni: rows[0].dni,
   edad: rows[0].edad,
-  tutor: rows[0].tutor,
+  
 
   curso: rows[0].curso,
   ciclo: ciclo,
