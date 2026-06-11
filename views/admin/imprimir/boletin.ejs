@@ -36,7 +36,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 25px;
+        margin-bottom: 12px;
         border-bottom: 3px solid #003087;
         padding-bottom: 15px;
     }
@@ -84,14 +84,14 @@
     .datos {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 25px;
+        margin-bottom: 12px;
         background: #f8f9fa;
     }
 
     .datos td {
         border: 1px solid #444;
-        padding: 8px 12px;
-        height: 32px;
+        padding: 5px 10px;
+        height: 24px;
     }
 
     .datos td:first-child {
@@ -111,15 +111,15 @@
     .tabla-notas th {
         background: #003087;
         color: white;
-        padding: 10px 8px;
+        padding: 5px 4px;
         text-align: center;
-        font-size: 12.5px;
+        font-size: 11px;
         font-weight: 600;
     }
 
     .tabla-notas td {
         border: 1px solid #555;
-        padding: 9px 8px;
+        padding: 4px 4px;
         text-align: center;
         vertical-align: middle;
     }
@@ -133,6 +133,13 @@
     /* Resaltado de notas bajas */
     .tabla-notas td:not(:first-child) {
         font-weight: 600;
+    }
+
+    .tabla-notas,
+    .tabla-inasistencias,
+    .observaciones,
+    .firmas {
+        page-break-inside: avoid;
     }
 
     /* ==================== SECCIONES ==================== */
